@@ -211,6 +211,30 @@ More details of Bollinger Bands can be found in <a href=https://www.tradingview.
 
 ![alt text](https://github.com/je-suis-tm/quant-trading/blob/master/preview/bollinger%20bands%20positions.png)
 
+#### Improvements by Aerith12
+
+After studying the original script I identified several bugs and limitations that prevented it from generating signals reliably, so I went ahead and reworked the strategy more aggressively into something cleaner and more robust.
+
+**Bugs fixed:**
+
+- **Condition-2 cross-bar comparison** — the original compared `mid_band[j]` to `upper_band[i]` (two different bars), making the condition nearly impossible to satisfy. Fixed to compare price vs mid band at the same bar.
+- **Node collapse** — `j`, `k` and `m` were being found just 1–2 bars apart, leaving no room for the W shape to form. Added a minimum spacing between each node.
+- **Hardcoded path** — `os.chdir('d:/')` broke on any machine other than the original author's. Now auto-detected from the script location.
+- **O(n²) position tracking** — the original recomputed `cumsum()` over the full dataframe on every signal hit. Replaced with a simple position state variable.
+- **Plot crash** — the visualization assumed at least 2 signals existed. Added a guard that prints a clear message instead of crashing.
+
+**Strategy improvements:**
+
+- **Adaptive thresholds** — `alpha` and `beta` are now expressed as a fraction of the current bandwidth rather than fixed absolute values, so the strategy works across different assets and timeframes without retuning.
+- **Top-M short pattern** — the original only traded longs (Bottom-W). Added the mirror pattern (Top-M) to also take short positions when price breaks below the lower band after a double top.
+- **RSI confirmation filter** — an optional RSI check at entry to avoid taking longs in strong downtrends and shorts in strong uptrends.
+- **ATR-based stop-loss and take-profit** — stops are placed below the second bottom node (or above the second top for shorts) using ATR multiples, with a configurable risk/reward ratio for the take-profit.
+- **Bandwidth contraction exit** — instead of comparing bandwidth to a fixed absolute `beta`, the exit now triggers when bandwidth drops below a fraction of its rolling maximum, which properly identifies when a volatility expansion is over.
+- **Backtest statistics** — added win rate, total PnL, average win/loss, profit factor, Sharpe ratio and maximum drawdown so you can actually evaluate the strategy without doing it manually.
+- **RSI subplot** — the chart now shows a second panel with RSI so you can visually verify the filter at each signal.
+
+On 1-minute GBPUSD data the reworked strategy produced **101 completed trades** with a **54.5% win rate**, **1.21 profit factor** and a **Sharpe of 0.91** — compared to zero signals from the original due to the bugs above.
+
 ### 10. Relative Strength Index Pattern Recognition
 
 RSI (Relative Strength Index) is also a popular indicator. It reflects the current strength/weakness of the stock price momentum. The calculation is pretty straight forward. We use 14 days of smoothed moving average (or other moving average methods) to separately calculate the intra daily uptrend and downtrend. We denote uptrend moving average divided by downtrend moving average as the relative strength. We normalize the relative strength by 100 which becomes an index called RSI. It is commonly believed that RSI above 70 is overbought and RSI below 30 is oversold. This is the simplest way to trade on RSI (as shown in the pictures below). Nonetheless, there could be divergence between RSI momentum and price momentum which will not be covered in the script. The effectiveness of any divergence strategy on RSI is rather debatable.
